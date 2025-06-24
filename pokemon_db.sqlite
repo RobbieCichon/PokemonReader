@@ -1,0 +1,32 @@
+CREATE TABLE IF NOT EXISTS Trainers (
+    trainer_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS Pokemon (
+    pokemon_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    trainer_id INTEGER NOT NULL,
+    name TEXT,
+    FOREIGN KEY (trainer_id) REFERENCES Trainers(trainer_id)
+);
+
+CREATE TABLE IF NOT EXISTS SeenMoves (
+    pokemon_id INTEGER,
+    move TEXT,
+    PRIMARY KEY (pokemon_id, move),
+    FOREIGN KEY (pokemon_id) REFERENCES Pokemon(pokemon_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS SeenItems (
+    pokemon_id INTEGER,
+    item TEXT,
+    PRIMARY KEY (pokemon_id, item),
+    FOREIGN KEY (pokemon_id) REFERENCES Pokemon(pokemon_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS SeenAbilities (
+    pokemon_id INTEGER,
+    ability TEXT,
+    PRIMARY KEY (pokemon_id, ability),
+    FOREIGN KEY (pokemon_id) REFERENCES Pokemon(pokemon_id) ON DELETE CASCADE
+);
