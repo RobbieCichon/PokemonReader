@@ -1,0 +1,5 @@
+﻿  main.cpp
+C:\Users\umbre\Documents\Coding for _fun_\C++\PokemonReaderFinal\main.cpp(72,78): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
+  PokemonReaderFinal.vcxproj -> C:\Users\umbre\Documents\Coding for _fun_\C++\PokemonReaderFinal\x64\Debug\PokemonReaderFinal.exe
+  'pwsh.exe' is not recognized as an internal or external command,
+  operable program or batch file.
