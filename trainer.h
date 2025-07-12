@@ -1,7 +1,8 @@
-#pragma
+#pragma once
 #ifndef TRAINER_H
 #define TRAINER_H
 #include "pokemon.h"
+#include "DatabaseInterface.h"
 #include <string>
 #include <iostream>
 #include <vector>
@@ -11,17 +12,18 @@
 class Trainer {
 private:
     sqlite3* db; //SQL database, initialized within the object to prevent issues with multiple Trainers (Shouldn't happen until we start keeping track of my own Pokemon)
-    int TrainerID;
-    std::string Name;
-    std::vector<Pokemon> ActiveTeam;
-    std::vector<Pokemon> PotentialTeam;
+    int trainerID;
+    int streakNumber;
+    std::string name;
+    std::vector<Pokemon> activeTeam;
+    std::vector<Pokemon> potentialTeam;
 
 public:
     //Constructor, passed with a name. Add Streak number to it as well later on.
     Trainer(std::string);
 
     //Returns a Pokemon from the PotentialTeam vector with a specific name, used in conjuction with AddActive method.
-    std::vector<Pokemon> GrabMon(const std::string& PokeName);
+    std::vector<Pokemon> grabMon(const std::string& pokeName);
 
     //Initializes the empty Active Team. This has three, mutable slots for trainers that have multiple sets of the same Pokemon.
     void InitActiveTeam();
@@ -56,43 +58,21 @@ public:
 
 };
 
-Trainer::Trainer(std::string Name) { //Constructor
-    if (sqlite3_open("pokemon_db.sqlite", &db) != SQLITE_OK) {
-        std::cerr << "Error opening SQLITE database: " << sqlite3_errmsg(db) << std::endl;
-        //Prevents a bad pointer
-        db = nullptr;
-    }
+Trainer::Trainer(std::string name) { //Constructor
+    this->db = DatabaseInterface::getDB();
 
-    sqlite3_stmt* stmt;
-    std::string query = "SELECT trainer_id FROM Trainers WHERE name = ?;";
-
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_text(stmt, 1, Name.c_str(), -1, SQLITE_STATIC);
-
-        if (sqlite3_step(stmt) == SQLITE_ROW) {
-            this->TrainerID = sqlite3_column_int(stmt, 0);
-        }
-        else {
-            sqlite3_finalize(stmt);
-            query = "INSERT INTO Trainers(name) VALUES (?);";
-            sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr);
-            sqlite3_bind_text(stmt, 1, Name.c_str(), -1, SQLITE_STATIC);
-            sqlite3_step(stmt);
-            this->TrainerID = sqlite3_last_insert_rowid(db);
-        }
-    }
-    sqlite3_finalize(stmt);
+    this->trainerID = DatabaseInterface::getOrCreateTrainer(name);
 }
 
 int Trainer::getTrainerID() const {
-    return TrainerID;
+    return trainerID;
 }
 
-std::vector<Pokemon> Trainer::GrabMon(const std::string& PokeName) { //Awkward with the unneeded vectors, but will leave like so for future 2D ActiveTeam
+std::vector<Pokemon> Trainer::grabMon(const std::string& pokeName) { //Awkward with the unneeded vectors, but will leave like so for future 2D ActiveTeam
     std::vector<Pokemon> matches;
 
-    for (const auto& p : PotentialTeam) {
-        if (p.getName() == PokeName) {
+    for (const auto& p : potentialTeam) {
+        if (p.getName() == pokeName) {
             matches.push_back(p);
         }
     }
@@ -102,22 +82,22 @@ std::vector<Pokemon> Trainer::GrabMon(const std::string& PokeName) { //Awkward w
 
 void Trainer::InitActiveTeam() {
     //3 slots for a singles Pokemon battle.
-    ActiveTeam.resize(3);
+    activeTeam.resize(3);
 }
 
 void Trainer::UpdateActiveSlot(const std::string& pokemonName) {
     if (IsPokemonInActive(pokemonName)) return;
 
-    std::vector<Pokemon> NewMon = GrabMon(pokemonName); //Leave as vector for change to 2D Active Team later one
+    std::vector<Pokemon> NewMon = grabMon(pokemonName); //Leave as vector for change to 2D Active Team later one
 
     if (!NewMon.empty()) {
-        ActiveTeam.push_back(NewMon.front());
+        activeTeam.push_back(NewMon.front());
     }
 
 }
 
 bool Trainer::IsPokemonInActive(const std::string& pokemonName) {
-    for (const auto& p : ActiveTeam) {
+    for (const auto& p : activeTeam) {
         if (p.getName() == pokemonName) {
             return true;
         }
@@ -126,29 +106,7 @@ bool Trainer::IsPokemonInActive(const std::string& pokemonName) {
 }
 
 int Trainer::getPokemonID(const std::string& name) {
-    //Default if not found.
-    int pokemonID = -1;
-
-    //SQL query to look for both Pokemon name and Trainer ID
-    std::string query = "SELECT pokemon_id FROM Pokemon WHERE trainer_id = ? AND name = ?;";
-
-    //SQLite statement
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) != SQLITE_OK) {
-        std::cerr << "Error preparing getPokemonID SQL query: " << sqlite3_errmsg(db) << std::endl;
-        return pokemonID;
-    }
-
-    //Binding of name and ID
-    sqlite3_bind_int(stmt, 1, TrainerID);
-    sqlite3_bind_text(stmt, 2, name.c_str(), -1, SQLITE_STATIC);
-
-    //Execute query
-    if (sqlite3_step(stmt) == SQLITE_ROW) {
-        pokemonID = sqlite3_column_int(stmt, 0);
-    }
-
-    sqlite3_finalize(stmt);
+	int pokemonID = DatabaseInterface::getPokemonID(trainerID, name);
 
     return pokemonID;
 
@@ -156,124 +114,28 @@ int Trainer::getPokemonID(const std::string& name) {
 }
 
 void Trainer::addSeenMove(int pokemonID, const std::string& moveName) {
-    //Creates query
-    std::string query =
-        "INSERT OR IGNORE INTO SeenMoves (pokemon_id, move) VALUES (?,?);";
-
-    sqlite3_stmt* stmt;
-
-    //Prepares statement and steps through
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, pokemonID);
-        sqlite3_bind_text(stmt, 2, moveName.c_str(), -1, SQLITE_STATIC);
-        sqlite3_step(stmt);
-    }
-    sqlite3_finalize(stmt);
+	DatabaseInterface::addSeenMove(pokemonID, moveName);
 }
 
-void Trainer::addSeenAbility(int pokemonID, const std::string& Ability) {
-    //Creates query
-    std::string query =
-        "INSERT OR IGNORE INTO SeenAbilities (pokemon_id, ability) VALUES (?,?);";
-
-    sqlite3_stmt* stmt;
-
-    //Prepares statement and steps through
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, pokemonID);
-        sqlite3_bind_text(stmt, 2, Ability.c_str(), -1, SQLITE_STATIC);
-        sqlite3_step(stmt);
-    }
-    sqlite3_finalize(stmt);
+void Trainer::addSeenAbility(int pokemonID, const std::string& ability) {
+	DatabaseInterface::addSeenAbility(pokemonID, ability); 
 }
 
-void Trainer::addSeenItem(int pokemonID, const std::string& Item) {
-    //Creates query
-    std::string query =
-        "INSERT OR IGNORE INTO SeenItems (pokemon_id, item) VALUES (?,?);";
-
-    sqlite3_stmt* stmt;
-
-    //Prepares statement and steps through
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, pokemonID);
-        sqlite3_bind_text(stmt, 2, Item.c_str(), -1, SQLITE_STATIC);
-        sqlite3_step(stmt);
-    }
-    sqlite3_finalize(stmt);
+void Trainer::addSeenItem(int pokemonID, const std::string& item) {
+	DatabaseInterface::addSeenItem(pokemonID, item);
 }
 
 
 std::vector<std::string> Trainer::getSeenMoves(int pokemonID) {
-    std::vector<std::string> moves;
-    std::string query = "SELECT move FROM SeenMoves WHERE pokemon_id = ?;";
-    sqlite3_stmt* stmt;
-    if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-        sqlite3_bind_int(stmt, 1, pokemonID);
-        while (sqlite3_step(stmt) == SQLITE_ROW) {
-            moves.push_back(reinterpret_cast<const char*>(sqlite3_column_text(stmt, 0)));
-        }
-    }
-    sqlite3_finalize(stmt);
-    return moves;
+    DatabaseInterface::getSeenMoves(pokemonID);
 }
 
 Trainer::~Trainer() { //Deconstructor to save new information gained at the end of the battle
-    if (!db) return;
-
-    //SQL transaction for multiple inserts at once
-    int TransCheck = sqlite3_exec(db, "BEGIN TRANSACTION;", nullptr, nullptr, nullptr);
-    if (TransCheck != SQLITE_OK) {
-        std::cerr << "Error starting transaction in deconstructor: " << sqlite3_errmsg(db) << std::endl;
-        return;
-    }
-
-    for (auto& p : ActiveTeam) {
-        sqlite3_stmt* stmt;
-        //Insert or Ignore to prevent duplicates
-        std::string query =
-            "INSERT OR IGNORE INTO Pokemon (trainer_id, name) VALUES (?, ?);";
-
-        if (sqlite3_prepare_v2(db, query.c_str(), -1, &stmt, nullptr) == SQLITE_OK) {
-            sqlite3_bind_int(stmt, 1, this->TrainerID);
-            sqlite3_bind_text(stmt, 2, p.getName().c_str(), -1, SQLITE_STATIC);
-            sqlite3_step(stmt);
-            sqlite3_finalize(stmt);
-        }
-        else {
-            std::cerr << "Error preparing INSERT query in deconstructor: " << sqlite3_errmsg(db) << std::endl;
-        }
-
-        //Get PokemonID after querying database
-        int pokemonID = getPokemonID(p.getName());
-
-        //Add moves used by each Pokemon
-        for (const std::string& move : getSeenMoves(pokemonID)) {
-            addSeenMove(pokemonID, move);
-        }
-
-        //Adds the ability if one was used
-        if (!p.getSeenAbility().empty()) {
-            addSeenAbility(pokemonID, p.getSeenAbility());
-        }
-
-        //Adds item if one was seen
-        if (!p.getSeenItem().empty()) {
-            addSeenItem(pokemonID, p.getSeenItem());
-        }
-
-    }
-
-    //Commit transaction
-    TransCheck = sqlite3_exec(db, "COMMIT;", nullptr, nullptr, nullptr);
-    if (TransCheck != SQLITE_OK) {
-        std::cerr << "Error committing transaction in deconstructor: " << sqlite3_errmsg(db) << std::endl;
-    }
+    //Save new information
+    DatabaseInterface::persistTrainerData(trainerID, activeTeam);
 
     //Safely close the database
-    if (db) {
-        sqlite3_close(db);
-    }
+	DatabaseInterface::closeDB();
 }
 
 #endif

@@ -47,8 +47,21 @@ cv::Mat captureScreen(HWND hwnd) {
 }
 
 cv::Mat cropToDialogue(const cv::Mat& screenshot) {
-    cv::Rect dialogueBox(242, 670, 1537, 211); //Coordinates for the dialogue box area to capture
+    cv::Rect dialogueBox(242, 670, 900, 211); //Coordinates for the dialogue box area to capture
     return screenshot(dialogueBox);
+}
+
+cv::Mat cropToStreakCount(const cv::Mat& screenshot, const std::string& level = "50") { //Currently hardcoded to level 50, can be changed to take either 50 or 100 from user when ready to move beyond 50.
+    cv::Rect streakBox;
+    if (level == "50") {
+        streakBox = cv::Rect(1580, 375, 120, 90); //Coordinates for the streak count area for level 50
+    } else if (level == "100") {
+        streakBox = cv::Rect(1580, 620, 120, 90); //Coordinates for the streak count area for level 100
+    } else {
+        cerr << "Invalid level selected for scropToStreakCount()." << endl;
+        return cv::Mat();
+    }
+    return screenshot(streakBox);
 }
 
 cv::Mat preprocessImage(const cv::Mat& input) {
@@ -86,7 +99,8 @@ void captureLoop(double interval) {
 
     vector<string> testImages = {
     "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_49.png",
-    "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_100.png"
+    "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_100.png",
+    "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_300.png"
     };
 
     for (int i = 0; i < testImages.size(); ++i) {
@@ -96,7 +110,11 @@ void captureLoop(double interval) {
             continue;
         }
         cv::Mat foundDialogue = preprocessImage(cropToDialogue(img));
-        cout << "Test " << i + 1 << " Text: \n" << analyzeImage(foundDialogue) << endl;
+        //cout << "Dialogue Test " << i + 1 << " Text: \n" << analyzeImage(foundDialogue) << endl;
+
+        cv::Mat foundStreak = preprocessImage(cropToStreakCount(img));
+        //cout << "Streak Test " << i + 1 << " Text: \n" << analyzeImage(foundStreak) << endl;
+
     }
 
 
