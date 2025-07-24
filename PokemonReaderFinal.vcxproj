@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="packages\vcpkg.C.Users.umbre.Downloads.vcpkg.1.0.0\build\native\vcpkg.C.Users.umbre.Downloads.vcpkg.props" Condition="Exists('packages\vcpkg.C.Users.umbre.Downloads.vcpkg.1.0.0\build\native\vcpkg.C.Users.umbre.Downloads.vcpkg.props')" />
   <ItemGroup Label="ProjectConfigurations">
@@ -107,6 +107,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,7 +131,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="BattleLogic.cpp" />
+    <ClCompile Include="DatabaseInterface.cpp" />
+    <ClCompile Include="databaseinterface.h" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Pokemon.cpp" />
+    <ClCompile Include="Trainer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="battlelogic.h" />

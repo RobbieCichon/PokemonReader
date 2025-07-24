@@ -14,6 +14,7 @@ for the player to conserve time spent using these tools separately.
 #include <leptonica/allheaders.h>
 #include <thread>
 #include <chrono>
+#include "battlelogic.h"
 using namespace std;
 
 cv::Mat captureScreen(HWND hwnd) {
@@ -47,7 +48,7 @@ cv::Mat captureScreen(HWND hwnd) {
 }
 
 cv::Mat cropToDialogue(const cv::Mat& screenshot) {
-    cv::Rect dialogueBox(242, 670, 900, 211); //Coordinates for the dialogue box area to capture
+    cv::Rect dialogueBox(242, 670, 1300, 211); //Coordinates for the dialogue box area to capture
     return screenshot(dialogueBox);
 }
 
@@ -102,45 +103,63 @@ void captureLoop(double interval) {
     "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_100.png",
     "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_300.png"
     };
+    string testImagePath = "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReaderFinal/TestScreenshots/screenshot_"; //Path to test images
 
-    for (int i = 0; i < testImages.size(); ++i) {
-        cv::Mat img = cv::imread(testImages[i]);
+    BattleLogic battleLogic;
+    for (int i = 0; i < 2700; ++i) {
+        cv::Mat img = cv::imread(testImagePath + to_string(i) + ".png");
         if (img.empty()) {
-            cerr << "Error loading: " << testImages[i] << endl;
+            cerr << "Error loading: " << testImagePath + to_string(i) + ".png" << endl;
             continue;
         }
-        cv::Mat foundDialogue = preprocessImage(cropToDialogue(img));
-        //cout << "Dialogue Test " << i + 1 << " Text: \n" << analyzeImage(foundDialogue) << endl;
 
-        cv::Mat foundStreak = preprocessImage(cropToStreakCount(img));
-        //cout << "Streak Test " << i + 1 << " Text: \n" << analyzeImage(foundStreak) << endl;
+        cout << "Processing image: " << i + 1 << endl;
+
+        if (battleLogic.getCurrentStreak() < 0 && battleLogic.getState() == 0) {
+            cv::Mat foundStreak = preprocessImage(cropToStreakCount(img));
+            //cout << "Streak Test " << i + 1 << " Text: \n" << analyzeImage(foundStreak) << endl;
+            string foundStreakText = analyzeImage(foundStreak);
+            if (foundStreakText.size() <= 3) {
+                try {
+                    battleLogic.handleStreakNumber(stoi(foundStreakText));
+                }
+                catch (const std::invalid_argument& e) {
+                }
+                catch (const std::out_of_range& e) {
+                }
+            }
+        }
+
+        cv::Mat foundDialogue = preprocessImage(cropToDialogue(img));
+        string foundDialogueText = analyzeImage(foundDialogue);
+        //cout << "Dialogue Test " << i + 1 << " Text: \n" << analyzeImage(foundDialogue) << endl;
+        battleLogic.handleDialogueLine(foundDialogueText);
+
+
+
+        //Proper loop, currently commented out to prevent infinite loop during testing
+        /*
+         while (true) {
+            cv::Mat screenshot = captureScreen(hwnd);
+            if (!screenshot.empty()){
+                string filename = "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReader/TestScreenshots/screenshot.png"; //No longer proper path, change to within program directory and have it overwrite the same screenshot after processing.
+                cv::imwrite(filename, screenshot);
+            }
+            else {
+                cerr << "Error: Screenshot capture failed." << endl;
+            }
+            foubDialogue = cropToDialogue(screenshot);
+            string foundText = analyzeImage(foundDialogue);
+            cout << foundText << endl;
+
+
+            // Sleep for the specified interval
+            this_thread::sleep_for(chrono::milliseconds(static_cast<int>(interval * 1000)));
+
+            //TODO: Implement proper exit condition for when the program should stop capturing screenshots.
+        } */
 
     }
-
-
-
-	//Proper loop, currently commented out to prevent infinite loop during testing
-    /*
-     while (true) {
-        cv::Mat screenshot = captureScreen(hwnd);
-        if (!screenshot.empty()){
-            string filename = "C:/Users/umbre/Documents/Coding for _fun_/C++/PokemonReader/TestScreenshots/screenshot.png"; //No longer proper path, change to within program directory and have it overwrite the same screenshot after processing.
-            cv::imwrite(filename, screenshot);
-        }
-        else {
-            cerr << "Error: Screenshot capture failed." << endl;
-        }
-		foubDialogue = cropToDialogue(screenshot);
-        string foundText = analyzeImage(foundDialogue);
-        cout << foundText << endl;
-
-
-		// Sleep for the specified interval
-        this_thread::sleep_for(chrono::milliseconds(static_cast<int>(interval * 1000)));
-
-		//TODO: Implement proper exit condition for when the program should stop capturing screenshots.
-    } */
-
 }
 
 

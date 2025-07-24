@@ -1,4 +1,4 @@
-#pragma
+#pragma once
 #ifndef POKEMON_H
 #define POKEMON_H
 
@@ -8,6 +8,7 @@
 // Pokemon class that holds moves, abilities, items, and a trainer-specific ID.
 class Pokemon {
 private:
+    int trainerId;
     std::vector<std::string> seenMoves;
     std::string Name;
     std::string SeenAbility;
@@ -15,34 +16,21 @@ private:
 
 
 public:
-    Pokemon(const std::string& name) : Name(name), SeenAbility(""), SeenItem("") {}
     Pokemon();
+    Pokemon(const std::string& name);
+    Pokemon(const std::string& name, int trainerId);
 
-    std::string getName() const {
-        return Name;
-    }
+    std::string getName() const;
 
-    std::string getSeenAbility() const {
-        return SeenAbility;
-    }
+    std::string getSeenAbility() const;
 
-    std::vector<std::string> getSeenMoves() const {
-        return seenMoves;
-    }
+    std::vector<std::string> getSeenMoves() const;
 
-    std::string getSeenItem() const {
-        return SeenItem;
-    }
+    std::string getSeenItem() const;
 
-    void setAbility(const std::string& Ability) {
-        SeenAbility = Ability;
-    }
+    void setAbility(const std::string& Ability);
 
-    void setItem(const std::string& Item) {
-        SeenItem = Item;
-    }
+    void setItem(const std::string& Item);
 };
-
-Pokemon::Pokemon() : Name(""), SeenAbility(""), SeenItem("") {}
 
 #endif
